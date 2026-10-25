@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IndicBook Studio - Multilingual Book Formatter</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts for Indic Scripts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;700&family=Noto+Sans+Tamil:wght@400;700&family=Noto+Serif+Devanagari:wght@400;700&family=Noto+Serif+Tamil:wght@400;700&display=swap" rel="stylesheet">
+    <!-- React & Babel for in-browser execution -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+      .font-serif { font-family: 'Noto Serif Devanagari', 'Noto Serif Tamil', Georgia, serif; }
+      .font-sans { font-family: 'Noto Sans Devanagari', 'Noto Sans Tamil', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans h-screen overflow-hidden">
+    <div id="root" class="h-full"></div>
+
+    <script type="text/babel">
+        function App() {
+            const [bookTitle, setBookTitle] = React.useState('मेरी पहली पुस्तक / எனது முதல் புத்தகம்');
+            const [authorName, setAuthorName] = React.useState('लेखक / ஆசிரியர்');
+            const [chapters, setChapters] = React.useState([
+                { id: 1, title: 'अध्याय 1 / அத்தியாயம் 1', content: 'यहाँ अपनी पुस्तक की सामग्री लिखें। जटिल लिपियाँ जैसे देवनागरी और तमिल यहाँ सही ढंग से काम करती हैं...\n\nஇங்கு உங்கள் புத்தகத்தின் உள்ளடக்கத்தை எழுதவும்.' }
+            ]);
+            const [activeChapterId, setActiveChapterId] = React.useState(1);
+            const [activeTab, setActiveTab] = React.useState('editor');
+            const [settings, setSettings] = React.useState({
+                fontFamily: 'font-serif',
+                fontSize: '18px',
+                lineHeight: '1.8'
+            });
+
+            React.useEffect(() => {
+                const saved = localStorage.getItem('indic_book_data');
+                if (saved) {
+                    try {
+                        const data = JSON.parse(saved);
+                        if (data.title) setBookTitle(data.title);
+                        if (data.author) setAuthorName(data.author);
+                        if (data.chapters) setChapters(data.chapters);
+                    } catch (e) { console.error(e); }
+                }
+            }, []);
+
+            const saveToLocal = () => {
+                localStorage.setItem('indic_book_data', JSON.stringify({ title: bookTitle, author: authorName, chapters }));
+                alert('Book saved successfully to your browser storage!');
+            };
+
+            const addChapter = () => {
+                const newId = chapters.length ? chapters[chapters.length - 1].id + 1 : 1;
+                setChapters([...chapters, { id: newId, title: `अध्याय ${newId} / அத்தியாயம் ${newId}`, content: 'नई सामग्री यहाँ दर्ज करें...' }]);
+                setActiveChapterId(newId);
+            };
+
+            const deleteChapter = (id) => {
+                if (chapters.length === 1) return alert('Book must have at least one chapter.');
+                const updated = chapters.filter(c => c.id !== id);
+                setChapters(updated);
+                setActiveChapterId(updated[0].id);
+            };
+
+            const activeChapter = chapters.find(c => c.id === activeChapterId) || chapters[0];
+
+            return (
+                <div className="flex h-screen bg-slate-900 text-slate-100 font-sans overflow-hidden">
+                    <div className="w-64 bg-slate-950 border-r border-slate-800 flex flex-col justify-between print:hidden">
+                        <div>
+                            <div className="p-4 border-b border-slate-800 flex items-center space-x-2">
+                                <span className="font-bold text-lg text-orange-500">📖 IndicBook Studio</span>
+                            </div>
+                            <div className="p-4 space-y-1">
+                                <button onClick={() => setActiveTab('editor')} className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium ${activeTab === 'editor' ? 'bg-orange-600 text-white' : 'hover:bg-slate-800 text-slate-300'}`}>Manuscript Editor</button>
+                                <button onClick={() => setActiveTab('styles')} className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium ${activeTab === 'styles' ? 'bg-orange-600 text-white' : 'hover:bg-slate-800 text-slate-300'}`}>Typesetting Layout</button>
+                            </div>
+                            <div className="px-4 py-2 mt-4">
+                                <div className="flex items-center justify-between mb-2">
+                                    <span className="text-xs font-semibold text-slate-400 uppercase">Chapters</span>
+                                    <button onClick={addChapter} className="text-orange-400 font-bold px-2 py-0.5 bg-slate-800 rounded">+</button>
+                                </div>
+                                <div className="space-y-1 max-h-60 overflow-y-auto">
+                                    {chapters.map(chap => (
+                                        <div key={chap.id} onClick={() => { setActiveChapterId(chap.id); setActiveTab('editor'); }} className={`flex items-center justify-between px-2 py-1.5 rounded text-sm cursor-pointer ${activeChapterId === chap.id && activeTab === 'editor' ? 'bg-slate-800 text-orange-400' : 'hover:bg-slate-900 text-slate-400'}`}>
+                                            <span className="truncate">{chap.title}</span>
+                                            <button onClick={(e) => { e.stopPropagation(); deleteChapter(chap.id); }} className="text-red-400 text-xs">✕</button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="p-4 border-t border-slate-800 space-y-2">
+                            <button onClick={saveToLocal} className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm py-2 rounded-lg">Save Project</button>
+                            <button onClick={() => window.print()} className="w-full bg-orange-600 hover:bg-orange-500 text-white text-sm py-2 rounded-lg">Export Print PDF</button>
+                        </div>
+                    </div>
+
+                    <div className="flex-1 flex flex-col h-full overflow-hidden">
+                        <header className="h-14 bg-slate-950 border-b border-slate-800 flex items-center px-6 print:hidden space-x-4">
+                            <input type="text" value={bookTitle} onChange={(e) => setBookTitle(e.target.value)} className="bg-transparent font-bold text-lg text-slate-100 focus:outline-none border-b border-transparent focus:border-orange-500" />
+                            <span className="text-slate-600">|</span>
+                            <input type="text" value={authorName} onChange={(e) => setAuthorName(e.target.value)} className="bg-transparent text-sm text-slate-400 focus:outline-none border-b border-transparent focus:border-orange-500" />
+                        </header>
+                        <div className="flex-1 flex overflow-hidden">
+                            <div className="flex-1 flex flex-col p-6 overflow-y-auto">
+                                {activeTab === 'editor' && (
+                                    <div className="max-w-3xl mx-auto w-full flex flex-col h-full space-y-4">
+                                        <input type="text" value={activeChapter.title} onChange={(e) => {
+                                            const val = e.target.value;
+                                            setChapters(chapters.map(c => c.id === activeChapterId ? {...c, title: val} : c));
+                                        }} className="text-2xl font-bold bg-transparent border-b border-slate-800 pb-2 focus:outline-none focus:border-orange-500" />
+                                        <textarea value={activeChapter.content} onChange={(e) => {
+                                            const val = e.target.value;
+                                            setChapters(chapters.map(c => c.id === activeChapterId ? {...c, content: val} : c));
+                                        }} className="w-full flex-1 bg-slate-950 border border-slate-800 rounded-xl p-4 text-slate-200 resize-none focus:outline-none focus:border-orange-500 leading-relaxed font-sans" />
+                                    </div>
+                                )}
+                                {activeTab === 'styles' && (
+                                    <div className="max-w-xl mx-auto w-full space-y-6 bg-slate-950 p-6 rounded-2xl border border-slate-800">
+                                        <h2 className="text-lg font-bold">Typography Settings</h2>
+                                        <div>
+                                            <label className="block text-sm text-slate-400 mb-2">Font Family</label>
+                                            <select value={settings.fontFamily} onChange={(e) => setSettings({...settings, fontFamily: e.target.value})} className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-sm">
+                                                <option value="font-serif">Noto Serif (Traditional Book Look)</option>
+                                                <option value="font-sans">Noto Sans (Modern Clean Look)</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm text-slate-400 mb-2">Font Size</label>
+                                            <select value={settings.fontSize} onChange={(e) => setSettings({...settings, fontSize: e.target.value})} className="w-full bg-slate-900 border border-slate-800 rounded-lg p-2.5 text-sm">
+                                                <option value="16px">16px</option>
+                                                <option value="18px">18px</option>
+                                                <option value="20px">20px</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="w-1/2 bg-slate-950 border-l border-slate-800 p-8 flex flex-col items-center justify-center overflow-y-auto">
+                                <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Live Preview</div>
+                                <div className={`w-[380px] min-h-[550px] bg-white text-slate-900 shadow-2xl p-8 flex flex-col justify-between ${settings.fontFamily}`} style={{ fontSize: settings.fontSize, lineHeight: settings.lineHeight }}>
+                                    <div>
+                                        <div className="text-center border-b border-slate-200 pb-3 mb-4">
+                                            <h1 className="font-bold text-lg">{activeChapter.title}</h1>
+                                            <p className="text-xs text-slate-500">{bookTitle}</p>
+                                        </div>
+                                        <div className="whitespace-pre-wrap text-justify">{activeChapter.content}</div>
+                                    </div>
+                                    <div className="text-center text-xs text-slate-400 pt-4 border-t border-slate-100">{authorName}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+    </script>
+</body>
+</html>
